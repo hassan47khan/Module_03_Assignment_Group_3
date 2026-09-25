@@ -3,16 +3,36 @@
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.Pane?>
-<Pane fx:id="gamePane" focusTraversable="true" prefWidth="609.0" prefHeight="430.0"
-      xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.module03assignmentgroup3.HelloController">
-  <!-- The maze stays unchanged in the background. -->
-  <ImageView fx:id="mazeView" fitWidth="609.0" fitHeight="430.0" preserveRatio="false">
-    <image><Image url="@maze.png"/></image>
-  </ImageView>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
 
-  <!-- The robot is placed above the maze so the controller can move it. -->
-  <ImageView fx:id="robotView" pickOnBounds="false">
-    <image><Image url="@robot.png"/></image>
-  </ImageView>
-</Pane>
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+                    fx:controller="org.example.module03assignmentgroup3.HelloController">
+
+  <center>
+       <Pane fx:id="gamePane" focusTraversable="true" prefWidth="609.0" prefHeight="430.0">
+             <!-- The maze stays unchanged in the background. -->
+              <ImageView fx:id="mazeView" fitWidth="609.0" fitHeight="430.0" preserveRatio="false">
+                  <image><Image url="@maze.png"/></image>
+              </ImageView>
+
+              <!-- The robot is placed above the maze so the controller can move it. -->
+              <ImageView fx:id="robotView" pickOnBounds="false">
+                  <image><Image url="@robot.png"/></image>
+             </ImageView>
+       </Pane>
+    </center>
+
+            <!-- Step 2 controls: start the automatic drive to the exit. -->
+  <bottom>
+        <HBox spacing="10" alignment="CENTER_LEFT">
+              <padding><Insets top="8" right="8" bottom="8" left="8"/></padding>
+              <Button fx:id="startButton" text="Start Animation" onAction="#onStartAnimation"/>
+              <Button fx:id="resetButton" text="Reset" onAction="#onReset"/>
+              <Label fx:id="statusLabel" text="Use the arrow keys, or press Start Animation."/>
+          </HBox>
+    </bottom>
+</BorderPane>
