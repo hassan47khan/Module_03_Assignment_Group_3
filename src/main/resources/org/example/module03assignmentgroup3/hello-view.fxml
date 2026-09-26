@@ -20,9 +20,7 @@
               </ImageView>
 
               <!-- The robot is placed above the maze so the controller can move it. -->
-              <ImageView fx:id="robotView" pickOnBounds="false">
-                  <image><Image url="@robot.png"/></image>
-             </ImageView>
+
        </Pane>
     </center>
 
