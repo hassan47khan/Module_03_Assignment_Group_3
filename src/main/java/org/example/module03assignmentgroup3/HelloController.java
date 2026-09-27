@@ -24,6 +24,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
+import javafx.geometry.Bounds;
 
 public class HelloController {
 
@@ -136,21 +137,40 @@ public class HelloController {
         double nextY = car.getLayoutY();
 
         // Change one coordinate depending on arrow key.
+
+        String direction = "";
+
         switch (event.getCode()) {
 
-            case UP -> nextY -= STEP;
+            case UP -> {
+                nextY -= STEP;
+                direction = "UP";
+            }
 
-            case DOWN -> nextY += STEP;
+            case DOWN -> {
+                nextY += STEP;
+                direction = "DOWN";
+            }
 
-            case LEFT -> nextX -= STEP;
+            case LEFT ->{
+                nextX -= STEP;
+                direction = "LEFT";
+            }
 
-            case RIGHT -> nextX += STEP;
+            case RIGHT -> {
+                nextX += STEP;
+                direction = "RIGHT";
+            }
 
             default -> {
             }
         }
 
-        // Move only when the new position is inside the white path.
+        String oldDirection = car.getDirection();
+
+        car.setDirection(direction);
+
+        // Then Check if the car can move in that direction.
         if (canOccupy(nextX, nextY)) {
 
             car.setLayoutX(nextX);
@@ -163,6 +183,9 @@ public class HelloController {
                             nextY
                     )
             );
+        } else{
+
+            car.setDirection(oldDirection);
         }
 
         event.consume();
@@ -170,37 +193,58 @@ public class HelloController {
 
     private boolean canOccupy(double x, double y) {
 
-        // Get the size of the car.
-        double carWidth = car.getBoundsInLocal().getWidth();
-        double carHeight = car.getBoundsInLocal().getHeight();
+        // Get the car's bounds based on its current direction.
+        Bounds bounds = car.getBoundsInParent();
 
-        // Check corners and center so the car cannot overlap a wall.
+        // Find the difference between the car's layout position
+        // and its actual position after rotation.
+        double offsetX = bounds.getMinX() - car.getLayoutX();
+        double offsetY = bounds.getMinY() - car.getLayoutY();
+
+        // Calculate where the car would actually be at the new position.
+        double left = x + offsetX;
+        double top = y + offsetY;
+        double right = left + bounds.getWidth();
+        double bottom = top + bounds.getHeight();
+
+        // Make sure the car stays inside the maze.
+        if (left < 0
+                || top < 0
+                || right > MAZE_WIDTH
+                || bottom > MAZE_HEIGHT) {
+
+            return false;
+        }
+
+        // Check the corners, edges, and center of the car.
         double[][] samplePoints = {
 
-                {x + 2, y + 2},
+                // Corners
+                {left + 2, top + 2},
+                {right - 2, top + 2},
+                {left + 2, bottom - 2},
+                {right - 2, bottom - 2},
 
-                {x + carWidth - 2, y + 2},
+                // Edges
+                {(left + right) / 2, top + 2},
+                {(left + right) / 2, bottom - 2},
+                {left + 2, (top + bottom) / 2},
+                {right - 2, (top + bottom) / 2},
 
-                {x + 2, y + carHeight - 2},
-
-                {x + carWidth - 2, y + carHeight - 2},
-
-                {x + carWidth / 2, y + carHeight / 2}
+                // Center
+                {(left + right) / 2, (top + bottom) / 2}
         };
 
+        // If any part of the car touches a blue wall,
+        // the car cannot move there.
         for (double[] point : samplePoints) {
 
-            // A blue pixel means this point is on a wall.
             if (isBlue(point[0], point[1])) {
                 return false;
             }
         }
 
-        // Prevent the car from leaving the maze.
-        return x >= 0
-                && y >= 0
-                && x + carWidth <= MAZE_WIDTH
-                && y + carHeight <= MAZE_HEIGHT;
+        return true;
     }
 
     private boolean isBlue(double x, double y) {

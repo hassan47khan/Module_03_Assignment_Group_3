@@ -5,8 +5,11 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Ellipse;
 import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.Group;
 
 public class Car extends Pane {
+
+    private String direction = "RIGHT";
 
     public Car() {
 
@@ -60,6 +63,43 @@ public class Car extends Pane {
                 wheel2
         );
 
+
         setPrefSize(24, 11);
+    }
+
+
+    public void setDirection(String direction) {
+
+        this.direction = direction;
+
+        switch (direction) {
+
+            case "RIGHT" -> {
+                setRotate(0);
+                setScaleX(1);
+                setScaleY(1);
+            }
+
+            case "LEFT" -> {
+                setRotate(0);
+                setScaleX(-1);
+                setScaleY(1);
+            }
+
+            case "UP" -> {
+                setRotate(-90);
+                setScaleX(1);
+                setScaleY(1);
+            }
+
+            case "DOWN" -> {
+                setRotate(90);
+                setScaleX(1);
+                setScaleY(1);
+            }
+        }
+    }
+    public String getDirection(){
+        return direction;
     }
 }
