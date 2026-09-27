@@ -365,6 +365,8 @@ public class HelloController {
         car.setLayoutX(START_X);
         car.setLayoutY(START_Y);
 
+        car.setDirection("RIGHT");
+
         statusLabel.setText(
                 "Use the arrow keys, or press Start Animation."
         );
@@ -399,6 +401,24 @@ public class HelloController {
         double dy =
                 target.getY()
                         - car.getLayoutY();
+
+        // Change the car's direction while it follows the path.
+        if(Math.abs(dx) > Math.abs(dy)){
+
+            if(dx > 0 ){
+                car.setDirection("RIGHT");
+            } else{
+                car.setDirection("LEFT");
+            }
+
+        } else if(Math.abs(dy) > 0){
+
+            if(dy > 0){
+                car.setDirection("DOWN");
+            }else{
+                car.setDirection("UP");
+            }
+        }
 
         double dist =
                 Math.hypot(dx, dy);
