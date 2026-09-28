@@ -32,7 +32,9 @@ public class HelloController {
     @FXML
     private Pane gamePane;
 
-    // Pane used for Maze 2.    @FXML
+    // Pane used for Maze 2.
+
+    @FXML
     private Pane maze2Pane;
 
     // Tab Pane created in order to include maze2
@@ -148,6 +150,12 @@ public class HelloController {
                 .addListener((obs, oldTab, newTab) -> {
 
                     if (newTab.getText().equals("Maze 2")) {
+                        if (animationTimeline != null) {
+                            animationTimeline.stop();
+                        }
+
+                        animating = false;
+                        startButton.setDisable(false);
                         maze2Active = true;
 
                         gamePane.getChildren().remove(car);
