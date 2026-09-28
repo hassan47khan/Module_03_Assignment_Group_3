@@ -13,6 +13,7 @@ import java.util.Map;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.scene.control.TabPane;
 import javafx.util.Duration;
 import javafx.geometry.Point2D;
 import javafx.scene.control.Label;
@@ -24,7 +25,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
-import javafx.geometry.Bounds;
 
 public class HelloController {
 
@@ -32,9 +32,19 @@ public class HelloController {
     @FXML
     private Pane gamePane;
 
+    // Pane used for Maze 2.    @FXML
+    private Pane maze2Pane;
+
+    // Tab Pane created in order to include maze2
+    @FXML
+    private TabPane tabPane;
+
     // The maze image shown in the background.
     @FXML
     private ImageView mazeView;
+
+    @FXML
+    private ImageView maze2View;
 
     // The car that moves around the maze.
     private Car car;
@@ -64,14 +74,26 @@ public class HelloController {
     private static final double EXIT_X = 580;
     private static final double EXIT_Y = 243;
 
+    // Maze 2 starting and exit positions.
+    private static final double MAZE2_START_X = 30;
+    private static final double MAZE2_START_Y = 40;
+
+    private static final double MAZE2_EXIT_X = 566;
+    private static final double MAZE2_EXIT_Y = 412;
+
+
     // Grid spacing while searching for a path.
     private static final int SOLVE_STEP = 4;
 
     // Pixels moved per animation tick.
     private static final double ANIMATION_SPEED = 3;
 
-    // Original maze image used to check wall colors.
+
+    // Currently active maze image used for pixel collision detection.
     private Image mazeImage;
+
+    // Keeps track of which maze is currently selected.
+    private boolean maze2Active = false;
 
     // Only these four keys can move the car.
     private static final Set<KeyCode> MOVEMENT_KEYS =
@@ -89,6 +111,7 @@ public class HelloController {
 
     private boolean animating = false;
 
+
     @FXML
     @SuppressWarnings("unused")
     private void initialize() {
@@ -104,28 +127,71 @@ public class HelloController {
         car.setLayoutX(START_X);
         car.setLayoutY(START_Y);
 
-        // Listen for arrow keys.
-        gamePane.sceneProperty().addListener(
-                (observable, oldScene, newScene) -> {
+        // Initialize the car and maze image for the initially selected tab.
+        if (tabPane.getSelectionModel().getSelectedIndex() == 1) {
 
-                    if (newScene != null) {
-                        newScene.addEventHandler(
-                                KeyEvent.KEY_PRESSED,
-                                this::moveCar
-                        );
+            maze2Active = true;
+
+            gamePane.getChildren().remove(car);
+            maze2Pane.getChildren().add(car);
+
+            mazeImage = maze2View.getImage();
+
+            car.setLayoutX(MAZE2_START_X);
+            car.setLayoutY(MAZE2_START_Y);
+            car.setDirection("RIGHT");
+        }
+
+        // Switch the car and maze image when the selected tab changes.
+        tabPane.getSelectionModel()
+                .selectedItemProperty()
+                .addListener((obs, oldTab, newTab) -> {
+
+                    if (newTab.getText().equals("Maze 2")) {
+                        maze2Active = true;
+
+                        gamePane.getChildren().remove(car);
+                        maze2Pane.getChildren().add(car);
+
+                        mazeImage = maze2View.getImage();
+
+                        car.setLayoutX(MAZE2_START_X);
+                        car.setLayoutY(MAZE2_START_Y);
+                        car.setDirection("RIGHT");
+
+                    } else {
+                        maze2Active = false;
+
+                        maze2Pane.getChildren().remove(car);
+                        gamePane.getChildren().add(car);
+
+                        mazeImage = mazeView.getImage();
+
+                        car.setLayoutX(START_X);
+                        car.setLayoutY(START_Y);
+                        car.setDirection("RIGHT");
                     }
-                }
-        );
+                });
+
+        // Listen for arrow keys at the Scene level so both maze tabs can receive input.
+        Platform.runLater(() -> {
+            tabPane.getScene().addEventFilter(
+                    KeyEvent.KEY_PRESSED,
+                    this::moveCar
+            );
+        });
 
         // Clicking the maze returns keyboard focus.
         gamePane.setOnMouseClicked(
                 event -> gamePane.requestFocus()
         );
 
-        Platform.runLater(gamePane::requestFocus);
+        Platform.runLater(() -> tabPane.requestFocus());
     }
 
     private void moveCar(KeyEvent event) {
+
+        statusLabel.setText("KEY: " + event.getCode());
 
         // Ignore non-arrow keys and ignore keys while auto-driving.
         if (animating || !MOVEMENT_KEYS.contains(event.getCode())) {
@@ -152,7 +218,7 @@ public class HelloController {
                 direction = "DOWN";
             }
 
-            case LEFT ->{
+            case LEFT -> {
                 nextX -= STEP;
                 direction = "LEFT";
             }
@@ -183,9 +249,10 @@ public class HelloController {
                             nextY
                     )
             );
-        } else{
+        } else {
 
             car.setDirection(oldDirection);
+            statusLabel.setText("BLOCKED: " + event.getCode());
         }
 
         event.consume();
@@ -193,50 +260,37 @@ public class HelloController {
 
     private boolean canOccupy(double x, double y) {
 
-        // Get the car's bounds based on its current direction.
-        Bounds bounds = car.getBoundsInParent();
+        double carWidth = 24;
+        double carHeight = 11;
 
-        // Find the difference between the car's layout position
-        // and its actual position after rotation.
-        double offsetX = bounds.getMinX() - car.getLayoutX();
-        double offsetY = bounds.getMinY() - car.getLayoutY();
+        double left = x;
+        double top = y;
+        double right = x + carWidth;
+        double bottom = y + carHeight;
 
-        // Calculate where the car would actually be at the new position.
-        double left = x + offsetX;
-        double top = y + offsetY;
-        double right = left + bounds.getWidth();
-        double bottom = top + bounds.getHeight();
-
-        // Make sure the car stays inside the maze.
         if (left < 0
                 || top < 0
-                || right > MAZE_WIDTH
-                || bottom > MAZE_HEIGHT) {
+                || right >= MAZE_WIDTH
+                || bottom >= MAZE_HEIGHT) {
 
             return false;
         }
 
-        // Check the corners, edges, and center of the car.
         double[][] samplePoints = {
-
-                // Corners
                 {left + 2, top + 2},
                 {right - 2, top + 2},
                 {left + 2, bottom - 2},
                 {right - 2, bottom - 2},
 
-                // Edges
                 {(left + right) / 2, top + 2},
                 {(left + right) / 2, bottom - 2},
+
                 {left + 2, (top + bottom) / 2},
                 {right - 2, (top + bottom) / 2},
 
-                // Center
                 {(left + right) / 2, (top + bottom) / 2}
         };
 
-        // If any part of the car touches a blue wall,
-        // the car cannot move there.
         for (double[] point : samplePoints) {
 
             if (isBlue(point[0], point[1])) {
@@ -249,7 +303,6 @@ public class HelloController {
 
     private boolean isBlue(double x, double y) {
 
-        // Treat positions outside the maze as blocked.
         if (x < 0
                 || y < 0
                 || x >= MAZE_WIDTH
@@ -258,7 +311,6 @@ public class HelloController {
             return true;
         }
 
-        // Convert screen position to a pixel in the original image.
         Image image = mazeImage;
 
         int imageX =
@@ -267,14 +319,12 @@ public class HelloController {
         int imageY =
                 (int) (y * image.getHeight() / MAZE_HEIGHT);
 
-        // Read pixel color.
         javafx.scene.paint.Color color =
                 image.getPixelReader().getColor(
                         imageX,
                         imageY
                 );
 
-        // Blue pixels are maze walls.
         return color.getBlue() > 0.35
                 && color.getBlue()
                 > color.getRed() * 1.5;
@@ -292,16 +342,28 @@ public class HelloController {
             return;
         }
 
+        if (tabPane.getSelectionModel().getSelectedIndex() == 1) {
+            mazeImage = maze2View.getImage();
+        } else {
+            mazeImage = mazeView.getImage();
+        }
+
         Point2D from =
                 new Point2D(
                         car.getLayoutX(),
                         car.getLayoutY()
                 );
 
+        // Use the correct exit position for the selected maze.
+        boolean maze2 = tabPane.getSelectionModel().getSelectedIndex() == 1;
+
+        double exitX = maze2 ? MAZE2_EXIT_X : EXIT_X;
+        double exitY = maze2 ? MAZE2_EXIT_Y : EXIT_Y;
+
         Point2D to =
                 new Point2D(
-                        EXIT_X,
-                        EXIT_Y
+                        exitX,
+                        exitY
                 );
 
         List<Point2D> rawPath =
@@ -362,16 +424,23 @@ public class HelloController {
 
         startButton.setDisable(false);
 
-        car.setLayoutX(START_X);
-        car.setLayoutY(START_Y);
+        // Reset the car to the starting position of the selected maze.
+        if (maze2Active) {
+            car.setLayoutX(MAZE2_START_X);
+            car.setLayoutY(MAZE2_START_Y);
+        } else {
+            car.setLayoutX(START_X);
+            car.setLayoutY(START_Y);
+        }
 
         car.setDirection("RIGHT");
+
 
         statusLabel.setText(
                 "Use the arrow keys, or press Start Animation."
         );
 
-        gamePane.requestFocus();
+
     }
 
     private void stepAnimation() {
@@ -403,19 +472,19 @@ public class HelloController {
                         - car.getLayoutY();
 
         // Change the car's direction while it follows the path.
-        if(Math.abs(dx) > Math.abs(dy)){
+        if (Math.abs(dx) > Math.abs(dy)) {
 
-            if(dx > 0 ){
+            if (dx > 0) {
                 car.setDirection("RIGHT");
-            } else{
+            } else {
                 car.setDirection("LEFT");
             }
 
-        } else if(Math.abs(dy) > 0){
+        } else if (Math.abs(dy) > 0) {
 
-            if(dy > 0){
+            if (dy > 0) {
                 car.setDirection("DOWN");
-            }else{
+            } else {
                 car.setDirection("UP");
             }
         }
@@ -468,10 +537,7 @@ public class HelloController {
 
         if (!canOccupy(
                 start.getX(),
-                start.getY())
-                || !canOccupy(
-                goal.getX(),
-                goal.getY())) {
+                start.getY())) {
 
             return null;
         }
@@ -502,6 +568,7 @@ public class HelloController {
 
             Point2D current =
                     queue.poll();
+
 
             if (Math.abs(
                     current.getX()
@@ -542,6 +609,7 @@ public class HelloController {
         }
 
         if (hit == null) {
+
             return null;
         }
 
@@ -556,8 +624,6 @@ public class HelloController {
         }
 
         Collections.reverse(path);
-
-        path.add(goal);
 
         return path;
     }
